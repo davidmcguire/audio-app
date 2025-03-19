@@ -1,14 +1,22 @@
 {
-  "name": "voicegram",
+  "name": "audiozoom",
   "version": "1.0.0",
-  "description": "Audio message marketplace for podcasters",
+  "description": "Audio recording and management application",
+  "main": "index.js",
   "scripts": {
+    "start": "node server/server.js",
+    "server": "cd server && npm start",
     "client": "cd client && npm start",
-    "server": "cd server && npm run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "install-all": "npm install && cd client && npm install && cd ../server && npm install"
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "build": "cd client && npm run build",
+    "production": "NODE_ENV=production node server/server.js"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.0"
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "nodemailer": "^6.10.0"
   }
-} 
+}
