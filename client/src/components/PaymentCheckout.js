@@ -5,7 +5,9 @@ import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import axios from 'axios';
 
 // Initialize Stripe with your public key
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
+const STRIPE_PUBLIC_KEY = 'pk_test_51Pl8m3Lkk9wVaEU39Vq2mRtMStDbuBKyfl57RcfH6i9SpwYw2dNk09bwZ1dKNClJFk6YTIDd6r3WYiEqFMEYG2Ie00VKeoaHJy';
+console.log('Initializing Stripe with key:', STRIPE_PUBLIC_KEY);
+const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 const PaymentCheckout = ({ request, pricingOption, podcasterId, onPaymentComplete }) => {
   const [loading, setLoading] = useState(false);

@@ -1,7 +1,7 @@
 {
-  "name": "voicegram-server",
+  "name": "audiozoom-server",
   "version": "1.0.0",
-  "description": "Backend for VoiceGram audio message marketplace",
+  "description": "Backend server for AudioZoom application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,16 +9,29 @@
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "google-auth-library": "^9.15.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^6.11.2",
+    "express-session": "^1.18.1",
+    "express-validator": "^7.2.1",
+    "google-auth-library": "^8.9.0",
+    "helmet": "^7.2.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.0.3",
+    "mongoose": "^7.8.6",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "stripe": "^17.7.0"
+    "nodemailer": "^6.10.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "stripe": "^12.18.0",
+    "winston": "^3.17.0",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

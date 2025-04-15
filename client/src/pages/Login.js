@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
+import { useAuth } from '../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import styled from 'styled-components';
 import Logo from '../components/Logo';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -22,7 +23,7 @@ const LoginContainer = styled.div`
 const LoginBox = styled(Card)`
   width: 100%;
   max-width: 450px;
-  box-shadow: ${props => props.theme.shadows.medium};
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
 const LoginHeader = styled(Card.Header)`
@@ -34,7 +35,7 @@ const LoginHeader = styled(Card.Header)`
 const LoginTitle = styled.h1`
   font-size: 1.75rem;
   color: ${props => props.theme.colors.text};
-  font-weight: ${props => props.theme.fontWeights.bold};
+  font-weight: 700;
   margin: 0;
 `;
 
@@ -58,12 +59,12 @@ const Divider = styled.div`
   &::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    border-bottom: 1px solid #ddd;
   }
   
   span {
     padding: 0 1rem;
-    color: ${props => props.theme.colors.textLight};
+    color: #666;
     font-size: 0.9rem;
   }
 `;
@@ -71,11 +72,11 @@ const Divider = styled.div`
 const RegisterLink = styled.div`
   text-align: center;
   margin-top: 1.5rem;
-  color: ${props => props.theme.colors.textLight};
+  color: #666;
   
   a {
     color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.semibold};
+    font-weight: 600;
     margin-left: 0.5rem;
     
     &:hover {
@@ -86,12 +87,18 @@ const RegisterLink = styled.div`
 
 const ErrorMessage = styled.div`
   color: ${props => props.theme.colors.error};
-  background-color: rgba(255, 59, 48, 0.1);
-  border: 1px solid rgba(255, 59, 48, 0.2);
-  border-radius: ${props => props.theme.borderRadius.small};
+  background-color: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  border-radius: 4px;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+`;
+
+const GoogleButton = styled.div`
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
 `;
 
 const Login = () => {
@@ -99,74 +106,25 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
-    
     try {
-      console.log('Attempting login for:', email);
-      
-      // Validate inputs
-      if (!email || !password) {
-        setError('Email and password are required');
-        return;
-      }
-      
-      const response = await api.post('/api/auth/login', { email, password });
-      console.log('Login response status:', response.status);
-
-      // Store the token in localStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('userId', response.data.userId);
-      
-      console.log('Login successful');
-      
-      // Redirect to home page
-      navigate('/');
+      await login(email, password);
+      navigate('/dashboard');
     } catch (err) {
-      console.error('Login error:', err);
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setError(err.response.data.error || 'Login failed');
-      } else if (err.request) {
-        // The request was made but no response was received
-        setError('Network error - could not connect to server. Please make sure the server is running.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setError(err.message || 'Login failed');
-      }
+      setError(err.message);
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const decoded = jwtDecode(credentialResponse.credential);
-      const response = await api.post('/api/auth/google', {
-        email: decoded.email,
-        name: decoded.name,
-        googleId: decoded.sub,
-        picture: decoded.picture
-      });
-
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('userId', response.data.userId);
-      navigate('/');
+      await login(credentialResponse.credential, null, true);
+      navigate('/dashboard');
     } catch (err) {
-      console.error('Google login error:', err);
-      if (err.response) {
-        setError(err.response.data.message || 'Google login failed');
-      } else if (err.request) {
-        setError('Network error - could not connect to server. Please make sure the server is running.');
-      } else {
-        setError(err.message || 'Google login failed');
-      }
+      setError(err.message);
     }
-  };
-
-  const handleGoogleError = () => {
-    setError('Google login failed. Please try again.');
   };
 
   return (
@@ -183,13 +141,11 @@ const Login = () => {
           <GoogleLoginContainer>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
+              onError={() => {
+                setError('Google login failed. Please try again.');
+              }}
               useOneTap
-              theme="outline"
-              shape="pill"
-              text="signin_with"
-              size="large"
-              width="250"
+              theme="filled_blue"
             />
           </GoogleLoginContainer>
           

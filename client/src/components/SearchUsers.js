@@ -98,7 +98,7 @@ const SearchUsers = () => {
         <input
           type="text"
           className="search-input"
-          placeholder="Search users..."
+          placeholder="Search Podcasts"
           value={searchQuery}
           onChange={handleSearchChange}
           onFocus={handleSearchFocus}

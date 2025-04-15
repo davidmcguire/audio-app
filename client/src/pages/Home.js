@@ -122,8 +122,7 @@ const Home = () => {
         <Logo size="large" />
         <Title>Connect With Your Favorite Creators</Title>
         <Subtitle>
-          A modern platform for fans to connect with their favorite content creators, 
-          influencers, and celebrities. Get personalized messages and exclusive content.
+          A place for fans to connect with their favorite podcast creators. Pay for personalized messages, features, and even bespoke episodes.
         </Subtitle>
         
         <CTAButtons>
@@ -137,7 +136,7 @@ const Home = () => {
           <Button 
             variant="outline" 
             size="large" 
-            onClick={() => navigate('/audio-history')}
+            onClick={() => navigate('/inbox')}
           >
             My Messages
           </Button>
@@ -165,20 +164,22 @@ const Home = () => {
               <FeatureIcon>🔒</FeatureIcon>
               <FeatureTitle>Secure Platform</FeatureTitle>
               <FeatureDescription>
-                Your messages and personal information are encrypted and secure.
+                Your messages, payments, and personal information are encrypted and secure.
               </FeatureDescription>
             </Card.Body>
           </FeatureCard>
           
           <FeatureCard>
             <Card.Body>
-              <FeatureIcon>💬</FeatureIcon>
-              <FeatureTitle>Easy Requests</FeatureTitle>
+              <FeatureIcon>💰</FeatureIcon>
+              <FeatureTitle>Creator? Add a revenue stream to your podcast.</FeatureTitle>
               <FeatureDescription>
-                Simple request system to connect with creators in just a few clicks.
+                Monetize your voice by creating personalized messages and exclusive content for your fans.
               </FeatureDescription>
             </Card.Body>
           </FeatureCard>
+          
+         
         </FeaturesGrid>
       </FeaturesSection>
     </HomeContainer>

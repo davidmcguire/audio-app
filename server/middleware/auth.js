@@ -3,35 +3,41 @@ const User = require('../models/User');
 
 const auth = async (req, res, next) => {
   try {
-    let token;
-    
-    // Check Authorization header
-    if (req.header('Authorization')) {
-      token = req.header('Authorization').replace('Bearer ', '');
-    } 
-    // Check cookies
-    else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      throw new Error('No authentication token found');
+      return res.status(401).json({ message: 'Authentication required' });
     }
-    
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
-    const user = await User.findOne({ _id: decoded.userId });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
-      throw new Error('User not found');
+      return res.status(401).json({ message: 'User not found' });
     }
 
     req.user = user;
-    req.token = token;
     next();
   } catch (error) {
-    console.error('Authentication error:', error.message);
-    res.status(401).send({ error: 'Please authenticate.' });
+    res.status(401).json({ message: 'Invalid authentication token' });
   }
 };
 
+const isAdmin = async (req, res, next) => {
+  try {
+    await auth(req, res, () => {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      next();
+    });
+  } catch (error) {
+    res.status(403).json({ message: 'Admin access required' });
+  }
+};
+
+module.exports = {
+  auth,
+  isAdmin
+}; 
 module.exports = auth; 

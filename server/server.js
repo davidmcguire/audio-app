@@ -13,6 +13,10 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const nodemailer = require('nodemailer');
 const cookieParser = require('cookie-parser');
+const securityMiddleware = require('./middleware/security');
+const { apiLimiter, authLimiter, paymentLimiter } = require('./middleware/rateLimiter');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Initialize Stripe with the API key from environment variables
 const STRIPE_SECRET_KEY = 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'; // Test key from Stripe documentation
@@ -45,10 +49,21 @@ const requestsRouter = require('./routes/requests');
 const messageRoutes = require('./routes/messages');
 const audioRequestsRouter = require('./routes/audioRequests');
 const paymentRoutes = require('./routes/payments');
-// const adminRoutes = require('./routes/admin'); // Commented out again
+const adminRoutes = require('./routes/admin');
+const authRoutes = require('./routes/auth');
+const paymentAutoReleaseJob = require('./jobs/paymentAutoRelease');
+const shoutoutsRoutes = require('./routes/shoutouts');
 
 const app = express();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Apply security middleware
+app.use(securityMiddleware);
+
+// Apply rate limiting
+// app.use('/api/', apiLimiter);
+// app.use('/api/auth/', authLimiter);
+// app.use('/api/payments/', paymentLimiter);
 
 // Configure multer for audio uploads
 const storage = multer.diskStorage({
@@ -92,11 +107,27 @@ if (!fs.existsSync('uploads/artwork')) {
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://js.stripe.com',
+      'https://m.stripe.network',
+      'https://accounts.google.com'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Length', 'Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Origin'],
+  exposedHeaders: ['Content-Length', 'Content-Type', 'Access-Control-Allow-Origin']
 }));
 
 // Add cookie parser middleware
@@ -113,15 +144,49 @@ app.use('/api/requests', requestsRouter);
 app.use('/api/messages', messageRoutes);
 app.use('/api/audio-requests', audioRequestsRouter);
 app.use('/api/payments', paymentRoutes);
-// app.use('/api/admin', adminRoutes); // Commented out again
+app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/shoutouts', shoutoutsRoutes);
 
-// Connect to MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/voicegram', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.log('MongoDB connection error:', err));
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Test route working' });
+});
+
+const port = parseInt(process.env.PORT) || 5001;
+
+// Improved error handling for MongoDB connection
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB successfully');
+    
+    // Start the payment auto-release job
+    paymentAutoReleaseJob.start();
+    
+    // Improved server startup with error handling
+    const startServer = async () => {
+      try {
+        app.listen(port, () => {
+          console.log(`Server is running on port ${port}`);
+          console.log(`MongoDB URI: ${process.env.MONGODB_URI}`);
+        });
+      } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+      }
+    };
+
+    startServer();
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // Authentication middleware
 const auth = async (req, res, next) => {
@@ -152,6 +217,45 @@ const auth = async (req, res, next) => {
 };
 
 // Auth routes
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET || 'your_jwt_secret',
+      { expiresIn: '7d' }
+    );
+
+    // Send response
+    res.status(200).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        picture: user.picture
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { email, name, googleId, picture } = req.body;
@@ -267,41 +371,6 @@ app.post('/api/auth/register', async (req, res) => {
       error: 'Registration failed',
       message: error.message 
     });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    console.log('Login attempt:', req.body.email);
-    const user = await User.findOne({ email: req.body.email });
-    if (!user) {
-      console.log('User not found:', req.body.email);
-      throw new Error('Invalid login credentials');
-    }
-    
-    const isMatch = await user.comparePassword(req.body.password);
-    if (!isMatch) {
-      console.log('Invalid password for user:', req.body.email);
-      throw new Error('Invalid login credentials');
-    }
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your_jwt_secret'
-    );
-    
-    // Set the token as a cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
-    });
-    
-    console.log('Login successful for user:', req.body.email);
-    res.send({ user, token });
-  } catch (error) {
-    console.error('Login error:', error.message);
-    res.status(400).send({ error: error.message });
   }
 });
 
@@ -1003,7 +1072,3 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
   });
 }
-
-const PORT = process.env.PORT || 5001;
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

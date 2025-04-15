@@ -1,6 +1,39 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// Define the schema for shoutout pricing options
+const shoutoutOptionSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  duration: {
+    type: Number, // in seconds
+    required: true,
+    min: 5,
+    max: 60
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  type: {
+    type: String,
+    enum: ['standard', 'premium', 'custom'],
+    default: 'standard'
+  }
+}, { _id: true });
+
 // Define the schema for media links
 const mediaLinkSchema = new mongoose.Schema({
   title: {
@@ -15,8 +48,8 @@ const mediaLinkSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['website', 'social', 'music', 'video', 'podcast', 'other'],
-    default: 'website'
+    enum: ['podcast', 'radio', 'social', 'website', 'other'],
+    default: 'podcast'
   },
   icon: {
     type: String,
@@ -165,24 +198,51 @@ const userSchema = new mongoose.Schema({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  isCreator: {
+    type: Boolean,
+    default: false
+  },
+  stripeAccountId: {
+    type: String
+  },
+  stripeCustomerId: {
+    type: String
+  },
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  totalReviews: {
+    type: Number,
+    default: 0
+  },
+  completedRequests: {
+    type: Number,
+    default: 0
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
 });
 
-// Hash password before saving (only if password is modified and exists)
+// Add password hashing middleware
 userSchema.pre('save', async function(next) {
-  if (this.isModified('password') && this.password) {
-    this.password = await bcrypt.hash(this.password, 8);
+  const user = this;
+  if (user.isModified('password')) {
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
   }
   next();
 });
 
-// Method to compare password for login
+// Add password comparison method
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  if (!this.password) {
-    return false;
-  }
   return bcrypt.compare(candidatePassword, this.password);
 };
 
