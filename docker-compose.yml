@@ -6,6 +6,26 @@ services:
     container_name: audiozoom_app
     ports:
       - "5001:5001" # Expose port 5000 from the app container to the host
+    environment:
+      - NODE_ENV
+      - JWT_SECRET
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      - GOOGLE_CLIENT_CALLBACK_URL
+      - STRIPE_SECRET_KEY
+      - STRIPE_WEBHOOK_SECRET
+      - PAYPAL_CLIENT_ID
+      - PAYPAL_CLIENT_SECRET
+      - CLIENT_URL
+      - MONGODB_URI
+      - PORT
+      - EMAIL_SERVICE
+      - EMAIL_USER
+      - EMAIL_PASS
+      - ADMIN_EMAIL
+      - REACT_APP_GOOGLE_CLIENT_ID
+      - REACT_APP_STRIPE_PUBLIC_KEY
+      - REACT_APP_API_URL
     depends_on:
       - mongo # Ensure mongo starts before the app
     volumes:
