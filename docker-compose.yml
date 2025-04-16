@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: audiozoom_app
+    ports:
+      - "5001:5001" # Expose port 5000 from the app container to the host
+    depends_on:
+      - mongo # Ensure mongo starts before the app
+    volumes:
+      # Optional: Mount uploads directory if you want to persist uploads outside the container
+      - ./uploads:/app/server/uploads 
+
+  mongo:
+    image: mongo:latest # Use the latest official MongoDB image
+    container_name: audiozoom_mongo
+    ports:
+      - "27017:27017" # Optional: expose mongo port to host if needed for debugging tools
+    volumes:
+      - mongo-data:/data/db # Persist database data in a named volume
+
+volumes:
+  mongo-data: # Define the named volume for MongoDB data 

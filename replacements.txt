@@ -1,4 +1,0 @@
-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==>your_google_client_secret
-692081369147-ro1vdfel9e4o45gf3souq0ksa5qp99kn.apps.googleusercontent.com==>your_google_client_id
-sk_test_51Pl8m3Lkk9wVaEU3NVodwGaOuG1yfaSZPE5CvEofxWHI9UqWqDBgdZubdMP6fHg0IRMCqtUi4CbruhtdIg0EvFuW00lexlreu7==>your_stripe_test_key
-goldkitten28_gmail==>your_email_password 

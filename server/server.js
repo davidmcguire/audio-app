@@ -171,7 +171,7 @@ mongoose.connect(process.env.MONGODB_URI)
     // Improved server startup with error handling
     const startServer = async () => {
       try {
-        app.listen(port, () => {
+        app.listen(port, '0.0.0.0', () => {
           console.log(`Server is running on port ${port}`);
           console.log(`MongoDB URI: ${process.env.MONGODB_URI}`);
         });
