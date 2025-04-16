@@ -112,7 +112,9 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     const allowedOrigins = [
-      'http://localhost:3000',
+      'http://localhost:5001',
+      'http://localhost:5000',
+      'https://fanswoon.com',
       'https://js.stripe.com',
       'https://m.stripe.network',
       'https://accounts.google.com'
