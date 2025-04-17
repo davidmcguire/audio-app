@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '../contexts/AuthContext';
 
 const HeroSection = styled.div`
   text-align: center;
   padding: 80px 20px;
-  background: linear-gradient(135deg, #8A2BE2 0%, #FF69B4 100%);
+  background: linear-gradient(135deg, ${props => props.theme.colors.primary.main} 0%, ${props => props.theme.colors.secondary.main} 100%);
   color: white;
   position: relative;
   overflow: hidden;
@@ -31,42 +32,60 @@ const HeroSection = styled.div`
 const Title = styled.h1`
   font-size: 4em;
   margin: 0;
-  font-family: 'Poppins', sans-serif;
+  font-family: ${props => props.theme.typography.fontFamily.primary};
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 const Subtitle = styled.p`
   font-size: 1.5em;
   margin: 20px 0 40px;
-  font-family: 'Poppins', sans-serif;
+  font-family: ${props => props.theme.typography.fontFamily.primary};
 `;
 
-const ButtonGroup = styled.div`
+const AuthButtonGroup = styled.div`
   display: flex;
+  flex-direction: column;
   gap: 20px;
-  justify-content: center;
-  margin-top: 30px;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
 `;
 
-const StyledButton = styled(Link)`
-  background: ${props => props.$variant === 'primary' ? '#FFD700' : '#8A2BE2'};
-  color: ${props => props.$variant === 'primary' ? '#8A2BE2' : 'white'};
-  padding: 15px 30px;
+const AuthButton = styled.button`
+  background: ${props => props.$variant === 'primary' ? props.theme.colors.accent.main : props.theme.colors.primary.main};
+  color: white;
+  padding: 20px 30px;
   border-radius: 30px;
-  font-weight: bold;
-  text-decoration: none;
+  font-weight: ${props => props.theme.typography.fontWeights.bold};
+  font-size: 1.2em;
+  border: none;
+  cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  font-family: 'Poppins', sans-serif;
+  font-family: ${props => props.theme.typography.fontFamily.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
+const GoogleIcon = styled.span`
+  font-size: 1.5em;
 `;
 
 const Section = styled.section`
   padding: 80px 20px;
   text-align: center;
+  background-color: ${props => props.theme.colors.background};
 `;
 
 const Grid = styled.div`
@@ -79,7 +98,7 @@ const Grid = styled.div`
 `;
 
 const Card = styled.div`
-  background: white;
+  background: ${props => props.theme.colors.white};
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -104,33 +123,67 @@ const FeatureItem = styled.li`
   align-items: center;
   gap: 15px;
   font-size: 1.1em;
+  color: ${props => props.theme.colors.text.primary};
 `;
 
 const CTA = styled.div`
-  background: #FFD700;
+  background: ${props => props.theme.colors.accent.main};
   padding: 60px 20px;
   text-align: center;
   border-radius: 20px;
   margin: 40px;
+  color: ${props => props.theme.colors.white};
 `;
 
 const Footer = styled.footer`
-  background: #2A2A2A;
+  background: ${props => props.theme.colors.gray[900]};
   color: white;
   padding: 40px 20px;
   text-align: center;
 `;
 
 const LandingPage = () => {
+  const { googleLogin, isGoogleLoading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleGoogleAuth = async (isNewUser = false) => {
+    try {
+      // First complete the Google authentication
+      const user = await googleLogin();
+      
+      // Only after successful authentication, check if we need to redirect to profile
+      if (isNewUser || !user?.profileComplete) {
+        navigate('/profile');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+    }
+  };
+
   return (
     <div>
       <HeroSection>
         <Title>Fanswoon</Title>
         <Subtitle>Where voices meet hearts.</Subtitle>
-        <ButtonGroup>
-          <StyledButton to="/signup" $variant="primary">🎧 For Superfans →</StyledButton>
-          <StyledButton to="/creator-signup">🎙️ For Podcasters →</StyledButton>
-        </ButtonGroup>
+        <AuthButtonGroup>
+          <AuthButton 
+            onClick={() => handleGoogleAuth(true)}
+            disabled={isGoogleLoading}
+            $variant="primary"
+          >
+            <GoogleIcon>G</GoogleIcon>
+            {isGoogleLoading ? 'Signing in...' : 'Sign up with Google'}
+          </AuthButton>
+          <AuthButton 
+            onClick={() => handleGoogleAuth(false)}
+            disabled={isGoogleLoading}
+          >
+            <GoogleIcon>G</GoogleIcon>
+            {isGoogleLoading ? 'Signing in...' : 'Login with Google'}
+          </AuthButton>
+        </AuthButtonGroup>
       </HeroSection>
 
       <Section>
@@ -182,7 +235,23 @@ const LandingPage = () => {
       <CTA>
         <h2>Ready to Fall in Love with Podcasting Again?</h2>
         <p>Whether you're a fan or a creator, Fanswoon turns passion into connection.</p>
-        <StyledButton to="/signup">Start Now →</StyledButton>
+        <AuthButtonGroup>
+          <AuthButton 
+            onClick={() => handleGoogleAuth(true)}
+            disabled={isGoogleLoading}
+            $variant="primary"
+          >
+            <GoogleIcon>G</GoogleIcon>
+            {isGoogleLoading ? 'Signing in...' : 'Sign up with Google'}
+          </AuthButton>
+          <AuthButton 
+            onClick={() => handleGoogleAuth(false)}
+            disabled={isGoogleLoading}
+          >
+            <GoogleIcon>G</GoogleIcon>
+            {isGoogleLoading ? 'Signing in...' : 'Login with Google'}
+          </AuthButton>
+        </AuthButtonGroup>
       </CTA>
 
       <Footer>

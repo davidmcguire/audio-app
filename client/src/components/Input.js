@@ -8,47 +8,47 @@ const InputContainer = styled.div`
 const Label = styled.label`
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: ${props => props.theme.fontWeights.semibold};
-  color: ${props => props.theme.colors.text};
+  font-weight: ${props => props.theme.typography.fontWeights.semiBold};
+  color: ${props => props.theme.colors.text.primary};
 `;
 
 const StyledInput = styled.input`
   width: 100%;
   padding: 0.75rem;
   font-size: 1rem;
-  border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.small};
+  border: 1px solid ${props => props.theme.colors.gray[300]};
+  border-radius: ${props => props.theme.borderRadius.md};
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  font-family: ${props => props.theme.fonts.body};
+  font-family: ${props => props.theme.typography.fontFamily.primary};
   
   &:focus {
     outline: none;
-    border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
+    border-color: ${props => props.theme.colors.primary.main};
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
   }
   
   &::placeholder {
-    color: #aaa;
+    color: ${props => props.theme.colors.gray[500]};
   }
   
   ${props => props.error && `
     border-color: ${props.theme.colors.error};
     
     &:focus {
-      box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.15);
+      box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.15);
     }
   `}
 `;
 
 const ErrorMessage = styled.div`
   color: ${props => props.theme.colors.error};
-  font-size: 0.875rem;
+  font-size: ${props => props.theme.typography.fontSizes.sm};
   margin-top: 0.5rem;
 `;
 
 const HelperText = styled.div`
-  color: ${props => props.theme.colors.textLight};
-  font-size: 0.875rem;
+  color: ${props => props.theme.colors.text.secondary};
+  font-size: ${props => props.theme.typography.fontSizes.sm};
   margin-top: 0.5rem;
 `;
 

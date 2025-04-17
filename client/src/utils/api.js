@@ -1,12 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  },
-  withCredentials: true
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
+  }
 });
 
 // Add a request interceptor
@@ -25,10 +26,24 @@ api.interceptors.request.use(
 
 // Add a response interceptor
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      if (error.response.status === 401) {
+        // Handle unauthorized access
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received:', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Error setting up request:', error.message);
     }
     return Promise.reject(error);
   }

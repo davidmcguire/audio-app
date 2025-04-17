@@ -1,7 +1,7 @@
 {
-  "name": "audiozoom-server",
+  "name": "fanswoon-server",
   "version": "1.0.0",
-  "description": "Backend server for AudioZoom application",
+  "description": "Backend server for fanswoon application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
+    "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",

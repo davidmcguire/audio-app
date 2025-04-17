@@ -1,4 +1,14 @@
 require('dotenv').config();
+
+// Debug logging for environment variables
+console.log('Environment variables loaded:', {
+  NODE_ENV: process.env.NODE_ENV,
+  MONGODB_URI: process.env.MONGODB_URI,
+  STRIPE_KEY_LOADED: !!process.env.STRIPE_SECRET_KEY,
+  PAYPAL_ID_LOADED: !!process.env.PAYPAL_CLIENT_ID,
+  CLIENT_URL: process.env.CLIENT_URL
+});
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -7,7 +17,6 @@ const multer = require('multer');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { OAuth2Client } = require('google-auth-library');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
@@ -19,8 +28,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 // Initialize Stripe with the API key from environment variables
-const STRIPE_SECRET_KEY = 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'; // Test key from Stripe documentation
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || STRIPE_SECRET_KEY);
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Initialize PayPal
 const paypal = require('@paypal/checkout-server-sdk');
@@ -55,7 +63,6 @@ const paymentAutoReleaseJob = require('./jobs/paymentAutoRelease');
 const shoutoutsRoutes = require('./routes/shoutouts');
 
 const app = express();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Apply security middleware
 app.use(securityMiddleware);
@@ -155,7 +162,15 @@ app.get('/api/health', (req, res) => {
 
 // Test route
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Test route working' });
+  res.json({ 
+    message: 'Test route working',
+    env: {
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      hasPaypalId: !!process.env.PAYPAL_CLIENT_ID,
+      hasPaypalSecret: !!process.env.PAYPAL_CLIENT_SECRET,
+      clientUrl: process.env.CLIENT_URL
+    }
+  });
 });
 
 const port = parseInt(process.env.PORT) || 5001;
@@ -233,73 +248,25 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || 'your_jwt_secret',
-      { expiresIn: '7d' }
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
     );
 
-    // Send response
-    res.status(200).json({
+    res.json({
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
-        picture: user.picture
+        isAdmin: user.isAdmin
       }
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error during login' });
-  }
-});
-
-app.post('/api/auth/google', async (req, res) => {
-  try {
-    const { email, name, googleId, picture } = req.body;
-
-    // Find or create user
-    let user = await User.findOne({ googleId });
-    
-    if (!user) {
-      // Check if user exists with same email
-      user = await User.findOne({ email });
-      
-      if (user) {
-        // Link Google account to existing user
-        user.googleId = googleId;
-        user.picture = picture;
-        await user.save();
-      } else {
-        // Create new user
-        user = new User({
-          email,
-          name,
-          googleId,
-          picture
-        });
-        await user.save();
-      }
-    }
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your_jwt_secret'
-    );
-
-    res.status(200).json({
-      token,
-      userId: user._id,
-      user: {
-        name: user.name,
-        email: user.email,
-        picture: user.picture
-      }
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
   }
 });
 
@@ -616,10 +583,10 @@ const sendEmailWithAudio = async (email, audioUrl, title, userName) => {
     
     // Prepare the email
     const mailOptions = {
-      from: '"AudioZoom" <noreply@audiozoom.com>',
+      from: '"fanswoon" <noreply@fanswoon.com>',
       to: email,
-      subject: 'AudioZoom - New Audio Shared With You',
-      text: `Hello,\n\n${userName} has shared an audio recording with you: "${title}"\n\nYou can listen to it here: ${fullAudioUrl}\n\nBest regards,\nThe AudioZoom Team`,
+      subject: 'fanswoon - New Audio Shared With You',
+      text: `Hello,\n\n${userName} has shared an audio recording with you: "${title}"\n\nYou can listen to it here: ${fullAudioUrl}\n\nBest regards,\nThe fanswoon Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>New Audio Shared With You</h2>
@@ -630,7 +597,7 @@ const sendEmailWithAudio = async (email, audioUrl, title, userName) => {
               Listen Now
             </a>
           </div>
-          <p>Best regards,<br>The AudioZoom Team</p>
+          <p>Best regards,<br>The fanswoon Team</p>
         </div>
       `
     };

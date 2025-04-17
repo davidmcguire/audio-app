@@ -5,6 +5,36 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const axios = require('axios');
+const Message = require('../models/Message');
+const Request = require('../models/Request');
+
+// Add auth middleware
+const auth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization').replace('Bearer ', '');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      throw new Error();
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Please authenticate' });
+  }
+};
+
+// Add /me endpoint
+router.get('/me', auth, async (req, res) => {
+  try {
+    res.json(req.user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Configure Google Strategy
 passport.use(new GoogleStrategy({
@@ -68,10 +98,12 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       token,
-      userId: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -103,14 +135,52 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    // Get user's unread messages count
+    const unreadMessages = await Message.countDocuments({
+      recipient: user._id,
+      read: false
+    });
+
+    // Get user's total earnings
+    const totalEarnings = await Request.aggregate([
+      {
+        $match: {
+          recipient: user._id,
+          status: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$price' }
+        }
+      }
+    ]);
+
+    // Get recent messages
+    const recentMessages = await Message.find({ recipient: user._id })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('sender', 'name picture');
+
     res.json({
       token,
-      userId: user._id,
-      name: user.name,
-      email: user.email
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        picture: user.picture
+      },
+      dashboard: {
+        unreadMessages,
+        totalEarnings: totalEarnings[0]?.total || 0,
+        recentMessages
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
@@ -130,43 +200,122 @@ router.get('/google/callback',
     );
 
     // Redirect to frontend with token
-    res.redirect(`${process.env.CLIENT_URL}/dashboard?token=${token}`);
+    res.redirect(`${process.env.CLIENT_URL}/profile?token=${token}`);
   }
 );
 
-// Google token verification route
+// Google OAuth route
 router.post('/google', async (req, res) => {
   try {
-    const { credential } = req.body;
-    const decoded = jwt.decode(credential);
+    console.log('Google auth request received:', {
+      hasAccessToken: !!req.body.accessToken,
+      hasUserInfo: !!req.body.userInfo,
+      userInfo: req.body.userInfo
+    });
+
+    const { accessToken, userInfo } = req.body;
+    
+    if (!userInfo) {
+      console.error('No user info provided');
+      throw new Error('No user info provided');
+    }
+    
+    // Verify the access token by making a request to Google's userinfo endpoint
+    console.log('Verifying access token with Google...');
+    const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    
+    console.log('Google userinfo response:', response.data);
+    
+    // Compare the user info from Google with what we received
+    if (response.data.sub !== userInfo.sub) {
+      console.error('User info mismatch:', {
+        googleSub: response.data.sub,
+        receivedSub: userInfo.sub
+      });
+      throw new Error('Invalid user info');
+    }
     
     // Find or create user
-    let user = await User.findOne({ googleId: decoded.sub });
+    console.log('Finding or creating user...');
+    let user = await User.findOne({ email: userInfo.email });
     
     if (!user) {
+      console.log('Creating new user...');
       user = await User.create({
-        googleId: decoded.sub,
-        email: decoded.email,
-        name: decoded.name,
-        picture: decoded.picture
+        googleId: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture
       });
+    } else if (!user.googleId) {
+      console.log('Updating existing user with Google ID...');
+      // If user exists but doesn't have googleId (registered through email)
+      user.googleId = userInfo.sub;
+      user.picture = userInfo.picture;
+      await user.save();
     }
 
     // Generate token
+    console.log('Generating JWT token...');
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
+    // Get user's unread messages count
+    const unreadMessages = await Message.countDocuments({
+      recipient: user._id,
+      read: false
+    });
+
+    // Get user's total earnings
+    const totalEarnings = await Request.aggregate([
+      {
+        $match: {
+          recipient: user._id,
+          status: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$price' }
+        }
+      }
+    ]);
+
+    // Get recent messages
+    const recentMessages = await Message.find({ recipient: user._id })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('sender', 'name picture');
+
+    console.log('Authentication successful, sending response with dashboard data...');
     res.json({
       token,
-      userId: user._id,
-      name: user.name,
-      email: user.email
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        picture: user.picture
+      },
+      dashboard: {
+        unreadMessages,
+        totalEarnings: totalEarnings[0]?.total || 0,
+        recentMessages
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Google auth error:', error);
+    res.status(500).json({ 
+      message: 'Google authentication failed', 
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 

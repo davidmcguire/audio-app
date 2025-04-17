@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5001/api
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - MONGODB_URI=mongodb://mongo:27017/fanswoon
+      - JWT_SECRET=your_jwt_secret_here
+      - GOOGLE_CLIENT_ID=your_google_client_id
+      - GOOGLE_CLIENT_SECRET=your_google_client_secret
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongo-data: 

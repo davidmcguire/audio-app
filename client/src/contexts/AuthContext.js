@@ -1,87 +1,98 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../utils/api';
 import axios from 'axios';
+import { useGoogleLogin } from '@react-oauth/google';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children, navigate }) => {
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   useEffect(() => {
-    checkAuth();
+    const token = localStorage.getItem('token');
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      checkAuth();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUser(response.data);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      localStorage.removeItem('token');
+      const response = await api.get('/auth/me');
+      setUser(response.data);
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      logout();
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email, password) => {
-    try {
-      setError(null);
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
-        email,
-        password
-      });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      return user;
-    } catch (error) {
-      setError(error.response?.data?.message || 'Login failed');
-      throw error;
-    }
-  };
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsGoogleLoading(true);
+      try {
+        const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        });
 
-  const register = async (userData) => {
-    try {
-      setError(null);
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/register`, userData);
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      return user;
-    } catch (error) {
-      setError(error.response?.data?.message || 'Registration failed');
-      throw error;
-    }
-  };
+        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/google`, {
+          accessToken: tokenResponse.access_token,
+          userInfo: userInfo.data
+        });
+        
+        const { token, user } = response.data;
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(user);
+        setIsAuthenticated(true);
+        if (navigate) navigate('/profile');
+      } catch (err) {
+        console.error('Google login failed:', err);
+        setError(err.response?.data?.message || 'Google login failed');
+        throw err;
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error('Google OAuth error:', error);
+      setError('Google authentication failed');
+      setIsGoogleLoading(false);
+    },
+    flow: 'implicit',
+    scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
+  });
 
   const logout = () => {
     localStorage.removeItem('token');
+    delete api.defaults.headers.common['Authorization'];
     setUser(null);
-  };
-
-  const updateUser = (userData) => {
-    setUser(prev => ({ ...prev, ...userData }));
+    setIsAuthenticated(false);
+    if (navigate) navigate('/');
   };
 
   const value = {
     user,
+    isAuthenticated,
     loading,
     error,
-    login,
-    register,
+    isGoogleLoading,
+    googleLogin,
     logout,
-    updateUser
+    setError
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

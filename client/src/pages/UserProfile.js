@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import api from '../config/api';
 import './Profile.css'; // Reuse the Profile CSS
 
 const UserProfile = () => {
@@ -7,52 +8,30 @@ const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        
-        // Fetch user data
-        const userResponse = await fetch(`http://localhost:5001/api/users/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!userResponse.ok) {
-          throw new Error('Failed to fetch user profile');
-        }
-        
-        const userData = await userResponse.json();
-        setUser(userData);
-        
-        // Fetch user's public recordings
-        const recordingsResponse = await fetch(`http://localhost:5001/api/recordings/user/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!recordingsResponse.ok) {
-          throw new Error('Failed to fetch user recordings');
-        }
-        
-        const recordingsData = await recordingsResponse.json();
-        setRecordings(recordingsData);
-        
-        setError(null);
+        setError('');
+
+        const [userResponse, recordingsResponse] = await Promise.all([
+          api.get(`/users/${userId}`),
+          api.get(`/recordings/user/${userId}`)
+        ]);
+
+        setUser(userResponse.data);
+        setRecordings(recordingsResponse.data);
       } catch (err) {
-        console.error('Error fetching user profile:', err);
-        setError('Failed to load user profile. Please try again later.');
+        setError(err.response?.data?.message || 'Failed to load user profile');
+        console.error('Error loading user profile:', err);
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchUserProfile();
+
+    fetchUserData();
   }, [userId]);
 
   const formatDate = (dateString) => {
@@ -76,45 +55,36 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="profile-container">
+    <div className="user-profile">
       <div className="profile-header">
-        <h1>{user.name}'s Profile</h1>
-      </div>
-      
-      <div className="profile-content">
-        <div className="profile-image-section">
-          <div className="profile-image">
-            {user.picture ? (
-              <img src={user.picture} alt={`${user.name}'s profile`} />
-            ) : (
-              <div className="profile-image-placeholder">
-                {user.name.charAt(0)}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="profile-details">
-          <h2>About</h2>
-          <div className="bio">
-            {user.bio || 'No bio available'}
-          </div>
-          
-          <h2>Recordings</h2>
-          {recordings.length === 0 ? (
-            <p>No public recordings available</p>
+        <div className="profile-avatar">
+          {user.picture ? (
+            <img src={user.picture} alt={`${user.name}'s avatar`} />
           ) : (
-            <div className="recordings-list">
-              {recordings.map(recording => (
-                <div key={recording._id} className="recording-item">
-                  <h3>{recording.title}</h3>
-                  <p className="recording-date">Uploaded on {formatDate(recording.createdAt)}</p>
-                  <audio controls src={recording.url} className="audio-player"></audio>
-                </div>
-              ))}
-            </div>
+            <div className="avatar-placeholder">{user.name[0]}</div>
           )}
         </div>
+        <div className="profile-info">
+          <h1>{user.name}</h1>
+          {user.bio && <p className="bio">{user.bio}</p>}
+        </div>
+      </div>
+
+      <div className="recordings-section">
+        <h2>Recordings</h2>
+        {recordings.length > 0 ? (
+          <div className="recordings-grid">
+            {recordings.map(recording => (
+              <div key={recording._id} className="recording-card">
+                <h3>{recording.title}</h3>
+                <p>{recording.description}</p>
+                <audio controls src={recording.url} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>No recordings available</p>
+        )}
       </div>
     </div>
   );

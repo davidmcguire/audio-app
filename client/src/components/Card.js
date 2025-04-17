@@ -3,18 +3,18 @@ import styled from 'styled-components';
 
 const CardContainer = styled.div`
   background-color: white;
-  border-radius: ${props => props.theme.borderRadius.medium};
-  box-shadow: ${props => props.theme.shadows.small};
+  border-radius: ${props => props.theme.borderRadius.md};
+  box-shadow: ${props => props.theme.shadows.sm};
   overflow: hidden;
   margin-bottom: 1.5rem;
-  border: 1px solid ${props => props.theme.colors.border};
+  border: 1px solid ${props => props.theme.colors.gray[300]};
 `;
 
 const CardHeader = styled.div`
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.colors.border};
+  border-bottom: 1px solid ${props => props.theme.colors.gray[300]};
   background-color: white;
-  font-weight: ${props => props.theme.fontWeights.semibold};
+  font-weight: ${props => props.theme.typography.fontWeights.semiBold};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -26,8 +26,8 @@ const CardBody = styled.div`
 
 const CardFooter = styled.div`
   padding: 1.25rem 1.5rem;
-  border-top: 1px solid ${props => props.theme.colors.border};
-  background-color: ${props => props.theme.colors.backgroundDark};
+  border-top: 1px solid ${props => props.theme.colors.gray[300]};
+  background-color: ${props => props.theme.colors.gray[100]};
 `;
 
 const Card = ({ children, className }) => {

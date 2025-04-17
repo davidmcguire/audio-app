@@ -69,13 +69,19 @@ router.post('/create-stripe-account-link', auth, async (req, res) => {
     
     // Create an account link for the user to onboard with Stripe
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    console.log('Using client URL for redirects:', clientUrl);
+    const refreshUrl = new URL('/settings?tab=payments', clientUrl).toString();
+    const returnUrl = new URL('/settings?tab=payments&stripe=success', clientUrl).toString();
+    
+    console.log('Using URLs for Stripe account link:');
+    console.log('Refresh URL:', refreshUrl);
+    console.log('Return URL:', returnUrl);
     
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
-      refresh_url: `${clientUrl}/settings?tab=payments`,
-      return_url: `${clientUrl}/settings?tab=payments&stripe=success`,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
       type: 'account_onboarding',
+      brand_name: 'fanswoon',
     });
     
     console.log('Created Stripe account link:', accountLink.url);
@@ -163,7 +169,7 @@ router.post('/create-paypal-order', auth, async (req, res) => {
         description: `Audio service payment (Platform fee: $${platformFee.toFixed(2)}, Creator: $${creatorAmount.toFixed(2)})`
       }],
       application_context: {
-        brand_name: 'AudioZoom',
+        brand_name: 'fanswoon',
         shipping_preference: 'NO_SHIPPING'
       }
     });

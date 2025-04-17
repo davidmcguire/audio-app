@@ -108,10 +108,17 @@ const userSchema = new mongoose.Schema({
   },
   googleId: {
     type: String,
-    unique: true,
-    sparse: true
+    required: true,
+    unique: true
   },
-  picture: String,
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  picture: {
+    type: String
+  },
   isPodcaster: {
     type: Boolean,
     default: false
@@ -222,6 +229,12 @@ const userSchema = new mongoose.Schema({
   completedRequests: {
     type: Number,
     default: 0
+  },
+  bankDetails: {
+    accountName: String,
+    accountNumber: String,
+    routingNumber: String,
+    bankName: String
   },
   createdAt: {
     type: Date,

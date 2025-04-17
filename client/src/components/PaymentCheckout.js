@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Card, Alert, Tabs, Tab, Spinner } from 'react-bootstrap';
 import { loadStripe } from '@stripe/stripe-js';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
-import axios from 'axios';
+import api from '../config/api';
 
 // Initialize Stripe with your public key
 const STRIPE_PUBLIC_KEY = 'pk_test_51Pl8m3Lkk9wVaEU39Vq2mRtMStDbuBKyfl57RcfH6i9SpwYw2dNk09bwZ1dKNClJFk6YTIDd6r3WYiEqFMEYG2Ie00VKeoaHJy';
@@ -32,17 +32,11 @@ const PaymentCheckout = ({ request, pricingOption, podcasterId, onPaymentComplet
       setLoading(true);
       setError('');
       
-      const response = await axios.post(
-        'http://localhost:5001/api/payments/create-stripe-payment-intent',
-        {
-          amount: pricingOption.price,
-          podcasterId: podcasterId,
-          pricingOptionId: pricingOption.id
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }
-      );
+      const response = await api.post('/payments/create-stripe-payment-intent', {
+        amount: pricingOption.price,
+        podcasterId: podcasterId,
+        pricingOptionId: pricingOption.id
+      });
       
       setClientSecret(response.data.clientSecret);
       setFeeBreakdown({
@@ -76,19 +70,12 @@ const PaymentCheckout = ({ request, pricingOption, podcasterId, onPaymentComplet
   
   const createPayPalOrder = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        'http://localhost:5001/api/payments/create-paypal-order',
-        {
-          amount: pricingOption.price,
-          currency: pricingOption.currency || 'USD',
-          requestId: request._id,
-          podcasterId
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const response = await api.post('/payments/create-paypal-order', {
+        amount: pricingOption.price,
+        currency: pricingOption.currency || 'USD',
+        requestId: request._id,
+        podcasterId
+      });
       
       return response.data.orderId;
     } catch (err) {

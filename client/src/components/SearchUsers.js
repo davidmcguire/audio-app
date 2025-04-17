@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FaSearch, FaDollarSign, FaUser, FaMicrophone } from 'react-icons/fa';
 import api from '../utils/api';
 import './SearchUsers.css';
 
-const SearchUsers = () => {
+const SearchUsers = ({ users }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -117,63 +117,23 @@ const SearchUsers = () => {
               {searchQuery.trim().length >= 2 ? 'No users found' : 'Type at least 2 characters to search'}
             </div>
           ) : (
-            <ul className="search-results-list">
+            <div className="search-users">
               {searchResults.map(user => (
-                <li 
-                  key={user._id} 
-                  className="search-result-item"
-                  onClick={() => handleUserClick(user._id)}
-                >
-                  <div className="search-result-user">
+                <Link to={`/profile/${user._id}`} key={user._id} className="search-user-item">
+                  <div className="search-user-avatar">
                     {user.picture ? (
-                      <img 
-                        src={`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}${user.picture}`} 
-                        alt={user.name} 
-                        className="search-result-avatar"
-                      />
+                      <img src={user.picture} alt={`${user.name}'s avatar`} />
                     ) : (
-                      <div className="search-result-avatar-placeholder">
-                        {user.name.charAt(0)}
-                      </div>
+                      <div className="avatar-placeholder">{user.name[0]}</div>
                     )}
-                    <div className="search-result-info">
-                      <div className="search-result-name">
-                        {user.displayName || user.name}
-                        {user.acceptsRequests && (
-                          <span className="accepts-requests-badge" title="Accepts audio requests">
-                            <FaMicrophone />
-                          </span>
-                        )}
-                      </div>
-                      {user.profession && (
-                        <div className="search-result-profession">{user.profession}</div>
-                      )}
-                      {user.bio && (
-                        <div className="search-result-bio">{user.bio.substring(0, 60)}{user.bio.length > 60 ? '...' : ''}</div>
-                      )}
-                    </div>
                   </div>
-                  <div className="search-result-actions">
-                    {user.acceptsRequests && user.hasPricingOptions && (
-                      <button 
-                        className="search-result-pricing-btn"
-                        onClick={(e) => handlePricingClick(user._id, e)}
-                        title="View pricing options"
-                      >
-                        <FaDollarSign />
-                      </button>
-                    )}
-                    <button 
-                      className="search-result-profile-btn"
-                      onClick={() => handleUserClick(user._id)}
-                      title="View profile"
-                    >
-                      <FaUser />
-                    </button>
+                  <div className="search-user-info">
+                    <h3 className="search-user-name">{user.name}</h3>
+                    <p className="search-user-bio">{user.bio || 'No bio available'}</p>
                   </div>
-                </li>
+                </Link>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       )}

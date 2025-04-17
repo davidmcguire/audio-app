@@ -81,11 +81,31 @@ router.get('/featured', auth, async (req, res) => {
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .populate('mediaLinks')
+      .populate('recordings');
+      
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      picture: user.picture,
+      bio: user.bio,
+      displayName: user.displayName,
+      location: user.location,
+      profession: user.profession,
+      profileTheme: user.profileTheme,
+      acceptsRequests: user.acceptsRequests,
+      mediaLinks: user.mediaLinks,
+      recordings: user.recordings,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    });
   } catch (err) {
     console.error('Error fetching user profile:', err);
     res.status(500).json({ message: 'Error fetching user profile' });

@@ -40,4 +40,3 @@ module.exports = {
   auth,
   isAdmin
 }; 
-module.exports = auth; 

@@ -11,16 +11,16 @@ const ButtonStyles = css`
       ? '1rem 2rem' 
       : '0.75rem 1.5rem'};
   font-size: ${props => props.$size === 'small' 
-    ? '0.875rem' 
+    ? props.theme.typography.fontSizes.sm
     : props.$size === 'large' 
-      ? '1.125rem' 
-      : '1rem'};
-  font-weight: ${props => props.theme.fontWeights.semibold};
-  border-radius: ${props => props.theme.borderRadius.small};
+      ? props.theme.typography.fontSizes.lg
+      : props.theme.typography.fontSizes.base};
+  font-weight: ${props => props.theme.typography.fontWeights.semiBold};
+  border-radius: ${props => props.theme.borderRadius.md};
   transition: all 0.2s ease-in-out;
   cursor: pointer;
   border: 1px solid transparent;
-  font-family: ${props => props.theme.fonts.body};
+  font-family: ${props => props.theme.typography.fontFamily.primary};
   text-decoration: none;
   
   &:disabled {
@@ -33,26 +33,26 @@ const ButtonStyles = css`
   `}
   
   ${props => props.$variant === 'primary' && css`
-    background-color: ${props => props.theme.colors.primary};
-    color: white;
+    background-color: ${props => props.theme.colors.primary.main};
+    color: ${props => props.theme.colors.white};
     
     &:hover:not(:disabled) {
-      background-color: ${props => props.theme.colors.primaryDark};
+      background-color: ${props => props.theme.colors.primary.dark};
     }
     
     &:focus {
-      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
       outline: none;
     }
   `}
   
   ${props => props.$variant === 'secondary' && css`
-    background-color: white;
-    color: ${props => props.theme.colors.text};
-    border-color: ${props => props.theme.colors.border};
+    background-color: ${props => props.theme.colors.white};
+    color: ${props => props.theme.colors.text.primary};
+    border-color: ${props => props.theme.colors.gray[300]};
     
     &:hover:not(:disabled) {
-      background-color: ${props => props.theme.colors.backgroundDark};
+      background-color: ${props => props.theme.colors.gray[100]};
     }
     
     &:focus {
@@ -63,29 +63,29 @@ const ButtonStyles = css`
   
   ${props => props.$variant === 'outline' && css`
     background-color: transparent;
-    color: ${props => props.theme.colors.primary};
-    border-color: ${props => props.theme.colors.primary};
+    color: ${props => props.theme.colors.primary.main};
+    border-color: ${props => props.theme.colors.primary.main};
     
     &:hover:not(:disabled) {
-      background-color: rgba(138, 43, 226, 0.05);
+      background-color: rgba(74, 144, 226, 0.05);
     }
     
     &:focus {
-      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
       outline: none;
     }
   `}
   
   ${props => props.$variant === 'danger' && css`
     background-color: ${props => props.theme.colors.error};
-    color: white;
+    color: ${props => props.theme.colors.white};
     
     &:hover:not(:disabled) {
-      background-color: #e02e24;
+      background-color: #ff7875;
     }
     
     &:focus {
-      box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.3);
+      box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.3);
       outline: none;
     }
   `}

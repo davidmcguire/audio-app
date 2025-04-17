@@ -1,50 +1,37 @@
 const mongoose = require('mongoose');
 
 const requestSchema = new mongoose.Schema({
-  sender: {
+  requester: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  recipient: {
+  podcaster: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  details: {
+  message: {
     type: String,
     required: true
   },
   price: {
     type: Number,
     required: true,
-    min: 1
+    min: 0
   },
   status: {
     type: String,
     enum: ['pending', 'accepted', 'rejected', 'completed'],
     default: 'pending'
   },
-  responseAudio: {
-    type: String,
-    default: null
+  createdAt: {
+    type: Date,
+    default: Date.now
   },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'paid', 'refunded', 'failed'],
-    default: 'pending'
-  },
-  paymentDetails: {
-    amount: { type: Number },
-    currency: { type: String },
-    paymentMethod: { type: String },
-    paymentId: { type: String },
-    paidAt: { type: Date }
+  completedAt: {
+    type: Date
   }
-}, {
-  timestamps: true
 });
 
-const Request = mongoose.model('Request', requestSchema);
-
-module.exports = Request; 
+module.exports = mongoose.model('Request', requestSchema); 
