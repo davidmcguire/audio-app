@@ -42,3 +42,7 @@ server/node_modules/.cache/
 *.tmp
 *.temp
 temp-repo/
+
+# build dirs
+client/build
+server/build
