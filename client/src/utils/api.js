@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://jw0ss44k0cgc8wsk00488gsk.37.27.179.169.sslip.io/api',
+  baseURL: process.env.REACT_APP_API_URL || 'https://app.fanswoon.com/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
