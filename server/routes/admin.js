@@ -5,12 +5,22 @@ const admin = require('../middleware/admin');
 const Payment = require('../models/Payment');
 const AudioRequest = require('../models/AudioRequest');
 const User = require('../models/User');
-const { isAdmin } = require('../middleware/auth');
+const Request = require('../models/Request');
 const emailService = require('../services/emailService');
 const paymentService = require('../services/paymentService');
 
+// Define isAdmin middleware locally instead of importing it
+const isAdmin = function(req, res, next) {
+  auth(req, res, function() {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    next();
+  });
+};
+
 // Get platform revenue statistics
-router.get('/revenue', [auth, admin], async (req, res) => {
+router.get('/revenue', [auth, isAdmin], async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
@@ -68,7 +78,7 @@ router.get('/revenue', [auth, admin], async (req, res) => {
 });
 
 // Get admin dashboard statistics
-router.get('/stats', [auth, admin], async (req, res) => {
+router.get('/stats', [auth, isAdmin], async (req, res) => {
   try {
     const [
       totalDisputes,
@@ -98,7 +108,7 @@ router.get('/stats', [auth, admin], async (req, res) => {
 });
 
 // Get all disputes
-router.get('/disputes', [auth, admin], async (req, res) => {
+router.get('/disputes', [auth, isAdmin], async (req, res) => {
   try {
     const disputes = await AudioRequest.find({
       'disputeDetails.status': { $exists: true }
@@ -115,7 +125,7 @@ router.get('/disputes', [auth, admin], async (req, res) => {
 });
 
 // Resolve a dispute
-router.post('/disputes/:disputeId/resolve', [auth, admin], async (req, res) => {
+router.post('/disputes/:disputeId/resolve', [auth, isAdmin], async (req, res) => {
   try {
     const { resolution } = req.body;
     const dispute = await AudioRequest.findById(req.params.disputeId)
@@ -166,7 +176,7 @@ router.post('/disputes/:disputeId/resolve', [auth, admin], async (req, res) => {
 });
 
 // Reject a dispute
-router.post('/disputes/:disputeId/reject', [auth, admin], async (req, res) => {
+router.post('/disputes/:disputeId/reject', [auth, isAdmin], async (req, res) => {
   try {
     const dispute = await AudioRequest.findById(req.params.disputeId)
       .populate('requester', 'name email')
@@ -214,7 +224,7 @@ router.post('/disputes/:disputeId/reject', [auth, admin], async (req, res) => {
 });
 
 // Add new route for suspicious activity monitoring
-router.post('/monitor/suspicious-activity', [auth, admin], async (req, res) => {
+router.post('/monitor/suspicious-activity', [auth, isAdmin], async (req, res) => {
   try {
     const { type, userId, details, ipAddress } = req.body;
     

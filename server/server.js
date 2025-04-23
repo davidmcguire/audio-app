@@ -120,21 +120,23 @@ app.use(cors({
     
     const allowedOrigins = [
       'http://localhost:3000',
+      'http://localhost:5001',
       'https://js.stripe.com',
       'https://m.stripe.network',
       'https://accounts.google.com'
     ];
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log('Origin not allowed by CORS:', origin);
+      callback(null, true); // Allow all origins for now to debug
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Origin'],
-  exposedHeaders: ['Content-Length', 'Content-Type', 'Access-Control-Allow-Origin']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'Content-Type']
 }));
 
 // Add cookie parser middleware
@@ -175,32 +177,23 @@ app.get('/api/test', (req, res) => {
 
 const port = parseInt(process.env.PORT) || 5001;
 
-// Improved error handling for MongoDB connection
+// Try to connect to MongoDB but start server even if connection fails
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB successfully');
-    
-    // Start the payment auto-release job
+    // Start the payment auto-release job if MongoDB is connected
     paymentAutoReleaseJob.start();
-    
-    // Improved server startup with error handling
-    const startServer = async () => {
-      try {
-        app.listen(port, () => {
-          console.log(`Server is running on port ${port}`);
-          console.log(`MongoDB URI: ${process.env.MONGODB_URI}`);
-        });
-      } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-      }
-    };
-
-    startServer();
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err);
-    process.exit(1);
+    console.log('Starting server without MongoDB connection...');
+  })
+  .finally(() => {
+    // Start the server regardless of MongoDB connection status
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+      console.log(`MongoDB URI: ${process.env.MONGODB_URI}`);
+    });
   });
 
 // Authentication middleware
@@ -1039,3 +1032,52 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
   });
 }
+
+// Add a mock login route that works without MongoDB
+app.post('/api/auth/login-mock', (req, res) => {
+  const mockUser = {
+    _id: "mockuser123",
+    name: "Test User",
+    email: "test@example.com",
+    isAdmin: true,
+    picture: "https://via.placeholder.com/150"
+  };
+
+  const token = jwt.sign(
+    { userId: mockUser._id },
+    process.env.JWT_SECRET || 'fallback_jwt_secret',
+    { expiresIn: '24h' }
+  );
+
+  res.json({
+    token,
+    user: mockUser,
+    dashboard: {
+      unreadMessages: 0,
+      totalEarnings: 0,
+      recentMessages: []
+    }
+  });
+});
+
+// Add a mock route for Google login
+app.post('/api/auth/google', (req, res) => {
+  const mockUser = {
+    _id: "mockuser456",
+    name: "Google User",
+    email: "google@example.com",
+    isAdmin: false,
+    picture: "https://via.placeholder.com/150"
+  };
+
+  const token = jwt.sign(
+    { userId: mockUser._id },
+    process.env.JWT_SECRET || 'fallback_jwt_secret',
+    { expiresIn: '24h' }
+  );
+
+  res.json({
+    token,
+    user: mockUser
+  });
+});

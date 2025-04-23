@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import Card from '../components/Card';
+import { useNavigate } from 'react-router-dom';
 
 const LoginContainer = styled.div`
   display: flex;
@@ -34,7 +35,7 @@ const Subtitle = styled.p`
   font-family: ${props => props.theme.typography.fontFamily.primary};
 `;
 
-const GoogleButton = styled.button`
+const Button = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,6 +49,7 @@ const GoogleButton = styled.button`
   color: ${props => props.theme.colors.text.primary};
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-bottom: 15px;
 
   &:hover {
     background-color: ${props => props.theme.colors.gray[100]};
@@ -58,6 +60,17 @@ const GoogleButton = styled.button`
     cursor: not-allowed;
   }
 `;
+
+const DirectLoginButton = styled(Button)`
+  background-color: ${props => props.theme.colors.primary};
+  color: white;
+  
+  &:hover {
+    background-color: ${props => props.theme.colors.primary}dd;
+  }
+`;
+
+const GoogleButton = styled(Button)``;
 
 const GoogleIcon = styled.img`
   width: 24px;
@@ -73,20 +86,80 @@ const ErrorMessage = styled.div`
   background-color: ${props => props.theme.colors.error}20;
 `;
 
+const SuccessMessage = styled.div`
+  color: ${props => props.theme.colors.success};
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: ${props => props.theme.borderRadius.base};
+  background-color: ${props => props.theme.colors.success}20;
+`;
+
 const Login = () => {
-  const { googleLogin, isGoogleLoading, error } = useAuth();
+  const { login, googleLogin, isGoogleLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const navigate = useNavigate();
+
+  const handleDirectLogin = async () => {
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const result = await login('test@example.com', 'password');
+      if (result.success) {
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          navigate('/profile');
+        }, 1000);
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setSuccess('');
+    
+    try {
+      const result = await googleLogin({});
+      if (result.success) {
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          navigate('/profile');
+        }, 1000);
+      } else {
+        setError(result.error || 'Google login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Google login failed');
+    }
+  };
 
   return (
     <LoginContainer>
       <Logo />
       <LoginBox>
         <Title>Welcome Back</Title>
-        <Subtitle>Sign in with Google to continue</Subtitle>
-        <GoogleButton onClick={googleLogin} disabled={isGoogleLoading}>
+        <Subtitle>Sign in to continue</Subtitle>
+        
+        <DirectLoginButton onClick={handleDirectLogin} disabled={isLoading || isGoogleLoading}>
+          {isLoading ? 'Signing in...' : 'Sign in as Test User'}
+        </DirectLoginButton>
+        
+        <GoogleButton onClick={handleGoogleLogin} disabled={isLoading || isGoogleLoading}>
           <GoogleIcon src="/google-icon.svg" alt="Google" />
-          {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
+          {isGoogleLoading ? 'Signing in with Google...' : 'Sign in with Google'}
         </GoogleButton>
+        
         {error && <ErrorMessage>{error}</ErrorMessage>}
+        {success && <SuccessMessage>{success}</SuccessMessage>}
       </LoginBox>
     </LoginContainer>
   );
