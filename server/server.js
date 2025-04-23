@@ -121,6 +121,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5001',
+      'httsp://fanswoon.com',
       'https://js.stripe.com',
       'https://m.stripe.network',
       'https://accounts.google.com'
