@@ -190,7 +190,7 @@ mongoose.connect(process.env.MONGODB_URI)
   })
   .finally(() => {
     // Start the server regardless of MongoDB connection status
-    app.listen(port, () => {
+    app.listen(port, "0.0.0.0", () => {
       console.log(`Server is running on port ${port}`);
       console.log(`MongoDB URI: ${process.env.MONGODB_URI}`);
     });
